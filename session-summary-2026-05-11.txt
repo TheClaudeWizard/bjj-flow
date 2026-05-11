@@ -1,0 +1,32 @@
+SESSION SUMMARY — 2026-05-11
+================================================================
+
+FILES & CHANGES
+----------------------------------------------------------------
+CREATED  | /root/.claude/skills/create-summary/SKILL.md | New Claude skill that generates plain-text session summaries on demand
+MODIFIED | /root/.claude/skills/create-summary/SKILL.md | Updated name field in frontmatter from session-summary to create-summary
+DELETED  | /root/.claude/skills/session-summary/         | Old skill directory removed when renamed to create-summary
+
+ERRORS & LESSONS LEARNED
+----------------------------------------------------------------
+- Edit tool requires reading a file before editing it. When the directory was renamed via Bash, the file path changed and the Edit tool rejected the call because the new path had not been read yet. Fix: always Read the file at its current path before calling Edit, even after a rename.
+
+MY PREFERENCES NOTED
+----------------------------------------------------------------
+- Wants skills usable from iPhone — prefers plain-text output with no markdown symbols (no #, *, backticks)
+- Prefers short, verb-style command names (create-summary rather than session-summary)
+- Gives concise, direct instructions without much back-and-forth
+
+PROJECT STATUS
+----------------------------------------------------------------
+The bjj-flow project has a new Claude skill called create-summary installed globally at ~/.claude/skills/create-summary/SKILL.md. The skill is live and auto-discovered by Claude Code. It can be invoked with /create-summary in any session on any project. No changes were made to the bjj-flow codebase itself.
+
+NEXT STEPS
+----------------------------------------------------------------
+1. Test /create-summary in a future session to confirm the output format looks right on iPhone
+2. Consider adding the skill file to the bjj-flow repo or a dotfiles repo so it persists across machines
+3. Optionally add a PostToolUse or Stop hook to auto-run /create-summary at session end if desired
+
+CONTEXT FOR NEXT CLAUDE
+----------------------------------------------------------------
+This session was entirely about tooling setup, not the bjj-flow app itself. The user created a /create-summary skill that generates a plain-text session summary file (no markdown) when invoked. The skill lives at ~/.claude/skills/create-summary/SKILL.md and is globally available in Claude Code. The user cares about iPhone readability, so the output format uses ALL CAPS headers and dashes instead of markdown. The bjj-flow codebase was not modified. If the user asks about the skill, it is already working — just type /create-summary to run it.
