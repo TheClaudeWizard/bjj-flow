@@ -12,202 +12,296 @@
 <meta name="theme-color" content="#1a1d26">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:'Segoe UI',sans-serif;background:#0f1117;color:#e8e6df;height:100vh;display:flex;flex-direction:column;overflow:hidden;}
+body{font-family:'Segoe UI',sans-serif;background:#0f1117;color:#e8e6df;height:100vh;display:flex;flex-direction:column;overflow:hidden;overscroll-behavior:none;}
+
 /* ── Topbar ── */
-#topbar{display:flex;align-items:stretch;background:#1a1d26;border-bottom:1px solid #2a2d3a;flex-shrink:0;}
-#tab-bar{display:flex;align-items:stretch;}
-.tab-btn{padding:0 18px;font-size:13px;font-weight:600;cursor:pointer;border:none;background:none;color:#6b6860;border-bottom:2px solid transparent;transition:color .15s,border-color .15s;letter-spacing:.3px;white-space:nowrap;}
-.tab-btn:hover{color:#c2c0b6;}
-.tab-btn.active{color:#c9a84c;border-bottom-color:#c9a84c;}
-#toolbar{display:flex;align-items:center;gap:7px;padding:8px 12px;flex:1;flex-wrap:wrap;border-left:1px solid #2a2d3a;}
-.tb-btn{background:#242736;border:1px solid #3a3d4e;color:#c2c0b6;padding:5px 11px;border-radius:6px;cursor:pointer;font-size:12px;white-space:nowrap;transition:background .15s,border-color .15s;line-height:1.4;}
-.tb-btn:hover{background:#2e3142;border-color:#c9a84c;color:#f0e6c0;}
-.tb-btn.active{background:#c9a84c22;border-color:#c9a84c;color:#c9a84c;}
-.tb-btn.save{background:#1d9e7522;border-color:#1d9e75;color:#5dcaa5;}
-.tb-btn.save:hover{background:#1d9e7533;}
-.tb-sep{width:1px;height:22px;background:#2a2d3a;margin:0 3px;flex-shrink:0;}
-.mode-label{font-size:10px;color:#6b6860;letter-spacing:.3px;}
-kbd{display:inline-block;background:#2a2d3a;border:1px solid #3a3d4e;border-radius:3px;padding:0 4px;font-size:10px;font-family:inherit;color:#888;margin-left:3px;line-height:1.5;}
+#topbar{
+  display:flex;align-items:center;justify-content:space-between;
+  background:#1a1d26;border-bottom:1px solid #2a2d3a;flex-shrink:0;
+  padding:0 16px;
+  height:calc(52px + env(safe-area-inset-top,0px));
+  padding-top:env(safe-area-inset-top,0px);
+}
+#app-title{font-size:17px;font-weight:700;color:#c9a84c;letter-spacing:.3px;}
+#nav-btn{
+  display:flex;align-items:center;gap:7px;
+  background:#242736;border:1px solid #3a3d4e;color:#e8e6df;
+  padding:9px 16px;border-radius:22px;font-size:13px;font-weight:600;
+  font-family:inherit;cursor:pointer;transition:background .15s,border-color .15s;
+  -webkit-tap-highlight-color:transparent;
+}
+#nav-btn:active{background:#2e3142;border-color:#c9a84c;}
+#nav-chev{font-size:9px;color:#888;transition:transform .2s;}
+#nav-btn.open #nav-chev{transform:rotate(180deg);}
+
+/* ── Nav Dropdown ── */
+#nav-overlay{position:fixed;inset:0;z-index:190;display:none;}
+#nav-overlay.open{display:block;}
+#nav-menu{
+  position:fixed;right:12px;
+  top:calc(60px + env(safe-area-inset-top,0px));
+  background:#1a1d26;border:1px solid #2a2d3a;border-radius:14px;
+  overflow:hidden;z-index:200;min-width:200px;
+  transform:scale(.92) translateY(-6px);transform-origin:top right;
+  opacity:0;transition:transform .18s cubic-bezier(.4,0,.2,1),opacity .18s;
+  pointer-events:none;
+  box-shadow:0 8px 32px #00000055;
+}
+#nav-menu.open{transform:scale(1) translateY(0);opacity:1;pointer-events:all;}
+.nav-item{
+  display:flex;align-items:center;gap:12px;width:100%;
+  padding:16px 20px;background:none;border:none;color:#c2c0b6;
+  font-size:15px;font-family:inherit;cursor:pointer;text-align:left;
+  border-bottom:1px solid #2a2d3a;transition:background .1s;
+  -webkit-tap-highlight-color:transparent;
+}
+.nav-item:last-child{border-bottom:none;}
+.nav-item:active{background:#242736;}
+.nav-item.active{color:#c9a84c;font-weight:600;}
+.nav-item .ni{font-size:17px;}
+
 /* ── Pages ── */
-#page-chart{flex:1;display:flex;position:relative;overflow:hidden;}
+#page-chart{flex:1;display:flex;flex-direction:column;overflow:hidden;}
 #page-journal{flex:1;display:none;overflow:hidden;}
 #page-calendar{flex:1;display:none;flex-direction:column;overflow:hidden;}
+
 /* ── Canvas ── */
 #canvas-wrap{flex:1;position:relative;overflow:hidden;}
-#canvas{position:absolute;top:0;left:0;display:block;}
-/* ── Panel ── */
-#panel{position:absolute;right:0;top:0;bottom:0;width:290px;background:#1a1d26;border-left:1px solid #2a2d3a;padding:16px;overflow-y:auto;transform:translateX(100%);transition:transform .2s;z-index:10;}
-#panel.open{transform:translateX(0);}
-#panel h2{font-size:13px;font-weight:600;color:#c9a84c;margin-bottom:12px;}
-#panel label{font-size:11px;color:#888;display:block;margin-bottom:4px;margin-top:10px;}
-#panel input[type=text],#panel textarea,#panel select{width:100%;background:#242736;border:1px solid #3a3d4e;color:#e8e6df;padding:7px 9px;border-radius:6px;font-size:12px;font-family:inherit;}
-#panel textarea{resize:vertical;min-height:70px;}
+#canvas{position:absolute;top:0;left:0;display:block;touch-action:none;}
+
+/* ── Chart Toolbar (bottom) ── */
+#chart-toolbar{
+  display:flex;align-items:center;justify-content:space-between;
+  background:#1a1d26;border-top:1px solid #2a2d3a;flex-shrink:0;
+  padding:0 12px;
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  height:calc(62px + env(safe-area-inset-bottom,0px));
+}
+#mode-btns{display:flex;gap:2px;}
+.mb-btn{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+  background:none;border:none;color:#6b6860;
+  padding:6px 10px;border-radius:12px;cursor:pointer;
+  min-width:54px;min-height:48px;
+  font-family:inherit;transition:background .12s,color .12s;
+  -webkit-tap-highlight-color:transparent;
+}
+.mb-icon{font-size:19px;line-height:1;}
+.mb-label{font-size:9px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;}
+.mb-btn.active{color:#c9a84c;background:#c9a84c18;}
+.mb-btn:active{background:#242736;}
+#action-btns{display:flex;gap:7px;align-items:center;}
+.ab-btn{
+  width:40px;height:40px;border-radius:10px;font-size:17px;
+  background:#242736;border:1px solid #3a3d4e;color:#c2c0b6;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transition:background .12s;-webkit-tap-highlight-color:transparent;flex-shrink:0;
+}
+.ab-btn:active{background:#2e3142;}
+.ab-danger{color:#e24b4a55;border-color:#3a3d4e;}
+.ab-danger:active{background:#e24b4a22;color:#e24b4a;border-color:#e24b4a55;}
+
+/* ── Panel (bottom sheet) ── */
+#panel{
+  position:absolute;left:0;right:0;bottom:0;
+  max-height:74%;
+  background:#1a1d26;
+  border-radius:18px 18px 0 0;
+  border-top:1px solid #2a2d3a;
+  overflow-y:auto;
+  transform:translateY(100%);
+  transition:transform .28s cubic-bezier(.4,0,.2,1);
+  z-index:20;
+  -webkit-overflow-scrolling:touch;
+}
+#panel.open{transform:translateY(0);}
+#panel-knob-row{text-align:center;padding:10px 0 2px;flex-shrink:0;}
+#panel-knob{display:inline-block;width:40px;height:4px;background:#3a3d4e;border-radius:2px;}
+#panel-titlebar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:6px 18px 12px;border-bottom:1px solid #2a2d3a;
+}
+#panel-title{font-size:13px;font-weight:600;color:#c9a84c;}
+.panel-close{background:none;border:none;color:#666;cursor:pointer;font-size:20px;line-height:1;padding:4px 0 4px 12px;-webkit-tap-highlight-color:transparent;}
+.panel-close:active{color:#e8e6df;}
+#pf-node,#pf-edge,#pf-group{padding:14px 18px 24px;}
+#panel label{font-size:11px;color:#888;display:block;margin-bottom:5px;margin-top:12px;}
+#panel input[type=text],#panel textarea,#panel select{
+  width:100%;background:#242736;border:1px solid #3a3d4e;color:#e8e6df;
+  padding:10px 11px;border-radius:8px;font-size:14px;font-family:inherit;
+}
+#panel textarea{resize:vertical;min-height:80px;}
 #panel input:focus,#panel textarea:focus,#panel select:focus{outline:none;border-color:#c9a84c;}
 #panel select option{background:#242736;}
-.panel-btn{margin-top:10px;width:100%;padding:8px;background:#c9a84c22;border:1px solid #c9a84c55;color:#c9a84c;border-radius:6px;cursor:pointer;font-size:12px;font-family:inherit;transition:background .15s;}
-.panel-btn:hover{background:#c9a84c33;}
+.panel-btn{
+  margin-top:12px;width:100%;padding:12px;
+  background:#c9a84c22;border:1px solid #c9a84c55;color:#c9a84c;
+  border-radius:10px;cursor:pointer;font-size:13px;font-family:inherit;
+  transition:background .15s;-webkit-tap-highlight-color:transparent;
+}
+.panel-btn:active{background:#c9a84c33;}
 .panel-btn.danger{background:#e24b4a22;border-color:#e24b4a55;color:#e24b4a;}
-.panel-btn.danger:hover{background:#e24b4a33;}
-.panel-close{position:absolute;top:12px;right:12px;background:none;border:none;color:#888;cursor:pointer;font-size:16px;line-height:1;}
-.panel-close:hover{color:#e8e6df;}
-.color-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;}
-.color-swatch{width:22px;height:22px;border-radius:4px;cursor:pointer;border:2px solid transparent;transition:border-color .15s;}
+.panel-btn.danger:active{background:#e24b4a33;}
+.color-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
+.color-swatch{width:28px;height:28px;border-radius:6px;cursor:pointer;border:2px solid transparent;transition:border-color .15s;}
 .color-swatch.sel{border-color:#fff;}
-.size-row{display:flex;align-items:center;gap:8px;margin-top:6px;}
-.size-row input[type=range]{flex:1;accent-color:#c9a84c;cursor:pointer;}
-.size-row span{font-size:11px;color:#888;min-width:28px;text-align:right;}
-.panel-section{border-top:1px solid #2a2d3a;margin-top:14px;padding-top:12px;}
+.size-row{display:flex;align-items:center;gap:10px;margin-top:8px;}
+.size-row input[type=range]{flex:1;accent-color:#c9a84c;cursor:pointer;height:24px;}
+.size-row span{font-size:11px;color:#888;min-width:30px;text-align:right;}
+.panel-section{border-top:1px solid #2a2d3a;margin-top:16px;padding-top:14px;}
+
 /* ── Hint / Toast / Legend ── */
-#hint{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);background:#1a1d26cc;border:1px solid #2a2d3a;border-radius:20px;padding:5px 16px;font-size:11px;color:#6b6860;pointer-events:none;white-space:nowrap;z-index:5;}
-#toast{position:absolute;bottom:50px;left:50%;transform:translateX(-50%);background:#1d9e7522;border:1px solid #1d9e75;color:#5dcaa5;border-radius:8px;padding:8px 18px;font-size:12px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:20;}
+#hint{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);background:#1a1d26cc;border:1px solid #2a2d3a;border-radius:20px;padding:5px 16px;font-size:11px;color:#6b6860;pointer-events:none;white-space:nowrap;z-index:5;}
+#toast{position:absolute;bottom:52px;left:50%;transform:translateX(-50%);background:#1d9e7522;border:1px solid #1d9e75;color:#5dcaa5;border-radius:8px;padding:8px 18px;font-size:12px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:25;white-space:nowrap;}
 #toast.show{opacity:1;}
-#legend{position:absolute;left:14px;bottom:14px;background:#1a1d26cc;border:1px solid #2a2d3a;border-radius:8px;padding:8px 12px;font-size:10px;color:#6b6860;pointer-events:none;z-index:5;}
+#legend{position:absolute;left:12px;bottom:12px;background:#1a1d26cc;border:1px solid #2a2d3a;border-radius:8px;padding:8px 10px;font-size:10px;color:#6b6860;pointer-events:none;z-index:5;}
 #legend div{display:flex;align-items:center;gap:6px;margin-bottom:3px;}
 #legend div:last-child{margin-bottom:0;}
 .leg-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+
 /* ── Journal ── */
 #journal-layout{display:flex;height:100%;}
-#journal-sidebar{width:240px;flex-shrink:0;border-right:1px solid #2a2d3a;display:flex;flex-direction:column;}
-#journal-list{flex:1;overflow-y:auto;padding:8px;}
-.j-entry-item{padding:9px 11px;border-radius:7px;cursor:pointer;margin-bottom:4px;border:1px solid transparent;transition:background .12s;}
-.j-entry-item:hover{background:#242736;border-color:#3a3d4e;}
+#journal-sidebar{width:155px;flex-shrink:0;border-right:1px solid #2a2d3a;display:flex;flex-direction:column;}
+#journal-list{flex:1;overflow-y:auto;padding:6px;}
+.j-entry-item{padding:11px 10px;border-radius:8px;cursor:pointer;margin-bottom:4px;border:1px solid transparent;transition:background .1s;-webkit-tap-highlight-color:transparent;}
+.j-entry-item:active{background:#242736;}
 .j-entry-item.active{background:#c9a84c18;border-color:#c9a84c44;}
-.j-entry-title{font-size:12px;font-weight:600;color:#e8e6df;margin-bottom:2px;}
+.j-entry-title{font-size:12px;font-weight:600;color:#e8e6df;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .j-entry-date{font-size:10px;color:#6b6860;}
 .j-entry-preview{font-size:11px;color:#888;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-#journal-new-btn{margin:8px;padding:9px;background:#c9a84c18;border:1px solid #c9a84c44;color:#c9a84c;border-radius:7px;cursor:pointer;font-size:12px;font-family:inherit;text-align:center;transition:background .15s;}
-#journal-new-btn:hover{background:#c9a84c28;}
+#journal-new-btn{margin:10px 8px 6px;padding:12px;background:#c9a84c18;border:1px solid #c9a84c44;color:#c9a84c;border-radius:8px;cursor:pointer;font-size:12px;font-family:inherit;text-align:center;transition:background .15s;-webkit-tap-highlight-color:transparent;}
+#journal-new-btn:active{background:#c9a84c28;}
 #journal-editor{flex:1;display:flex;flex-direction:column;overflow:hidden;}
-#journal-empty{flex:1;display:flex;align-items:center;justify-content:center;color:#6b6860;font-size:13px;}
-#journal-edit-area{flex:1;display:none;flex-direction:column;padding:20px 24px;overflow:hidden;}
+#journal-empty{flex:1;display:flex;align-items:center;justify-content:center;color:#6b6860;font-size:13px;text-align:center;padding:20px;}
+#journal-edit-area{flex:1;display:none;flex-direction:column;padding:18px 20px;overflow:hidden;}
 #journal-edit-area.active{display:flex;}
-#j-title-input{background:none;border:none;color:#e8e6df;font-size:20px;font-weight:700;font-family:inherit;margin-bottom:6px;outline:none;width:100%;}
+#j-title-input{background:none;border:none;color:#e8e6df;font-size:19px;font-weight:700;font-family:inherit;margin-bottom:8px;outline:none;width:100%;}
 #j-title-input::placeholder{color:#2a2d3a;}
-#j-meta{font-size:11px;color:#6b6860;margin-bottom:16px;border-bottom:1px solid #2a2d3a;padding-bottom:12px;}
-#j-body-input{flex:1;background:none;border:none;color:#c2c0b6;font-size:14px;font-family:inherit;resize:none;outline:none;line-height:1.8;}
+#j-meta{font-size:11px;color:#6b6860;margin-bottom:14px;border-bottom:1px solid #2a2d3a;padding-bottom:12px;}
+#j-body-input{flex:1;background:none;border:none;color:#c2c0b6;font-size:15px;font-family:inherit;resize:none;outline:none;line-height:1.85;}
 #j-body-input::placeholder{color:#2a2d3a;}
-#j-delete-btn{margin-top:12px;padding:7px;background:#e24b4a18;border:1px solid #e24b4a44;color:#e24b4a77;border-radius:6px;cursor:pointer;font-size:11px;font-family:inherit;transition:all .15s;text-align:center;flex-shrink:0;}
-#j-delete-btn:hover{background:#e24b4a28;color:#e24b4a;}
+#j-delete-btn{margin-top:10px;padding:10px;background:#e24b4a18;border:1px solid #e24b4a44;color:#e24b4a77;border-radius:8px;cursor:pointer;font-size:12px;font-family:inherit;transition:all .15s;text-align:center;flex-shrink:0;-webkit-tap-highlight-color:transparent;}
+#j-delete-btn:active{background:#e24b4a28;color:#e24b4a;}
+
 /* ── Calendar ── */
-#cal-graph-section{height:33%;border-bottom:1px solid #2a2d3a;padding:16px 20px 10px;display:flex;flex-direction:column;flex-shrink:0;}
-#cal-graph-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-shrink:0;}
-#cal-graph-title{font-size:13px;font-weight:600;color:#c9a84c;letter-spacing:.3px;}
-#cal-graph-controls{display:flex;align-items:center;gap:8px;}
-.graph-range-btn{background:#242736;border:1px solid #3a3d4e;color:#888;padding:4px 10px;border-radius:5px;cursor:pointer;font-size:11px;font-family:inherit;transition:all .15s;}
+#cal-graph-section{height:32%;border-bottom:1px solid #2a2d3a;padding:14px 16px 8px;display:flex;flex-direction:column;flex-shrink:0;}
+#cal-graph-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-shrink:0;}
+#cal-graph-title{font-size:12px;font-weight:600;color:#c9a84c;letter-spacing:.3px;}
+#cal-graph-controls{display:flex;align-items:center;gap:6px;}
+.graph-range-btn{background:#242736;border:1px solid #3a3d4e;color:#888;padding:6px 11px;border-radius:6px;cursor:pointer;font-size:11px;font-family:inherit;transition:all .15s;-webkit-tap-highlight-color:transparent;}
 .graph-range-btn.active{background:#c9a84c22;border-color:#c9a84c;color:#c9a84c;}
-#cal-graph-legend{display:flex;gap:16px;font-size:10px;color:#6b6860;}
-#cal-graph-legend span{display:flex;align-items:center;gap:5px;}
+#cal-graph-legend{display:none;}
 #graph-canvas-wrap{flex:1;position:relative;min-height:0;}
 #graph-canvas{width:100%;height:100%;display:block;}
-#cal-section{flex:1;display:flex;flex-direction:column;overflow:hidden;padding:14px 20px;}
-#cal-nav{display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-shrink:0;}
-#cal-month-label{font-size:16px;font-weight:700;color:#e8e6df;min-width:160px;}
-#cal-nav-btns{display:flex;gap:6px;}
-.cal-nav-btn{background:#242736;border:1px solid #3a3d4e;color:#c2c0b6;padding:5px 11px;border-radius:6px;cursor:pointer;font-size:13px;transition:background .15s;}
-.cal-nav-btn:hover{background:#2e3142;border-color:#c9a84c;}
-.cal-today-btn{background:#c9a84c22;border:1px solid #c9a84c44;color:#c9a84c;padding:5px 12px;border-radius:6px;cursor:pointer;font-size:11px;font-family:inherit;transition:background .15s;margin-left:4px;}
-.cal-today-btn:hover{background:#c9a84c33;}
-#cal-add-btn{margin-left:auto;background:#1d9e7522;border:1px solid #1d9e7566;color:#5dcaa5;padding:5px 13px;border-radius:6px;cursor:pointer;font-size:12px;font-family:inherit;transition:background .15s;}
-#cal-add-btn:hover{background:#1d9e7533;}
-#cal-legend{display:flex;gap:14px;font-size:10px;color:#6b6860;margin-bottom:10px;flex-shrink:0;}
-#cal-legend span{display:flex;align-items:center;gap:5px;}
-.cal-legend-dot{width:9px;height:9px;border-radius:2px;flex-shrink:0;}
-#cal-grid-wrap{flex:1;overflow:hidden;display:flex;flex-direction:column;}
-#cal-dow-header{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:4px;flex-shrink:0;}
-.cal-dow{text-align:center;font-size:10px;color:#6b6860;padding:3px 0;font-weight:600;letter-spacing:.5px;}
-#cal-grid{flex:1;display:grid;grid-template-columns:repeat(7,1fr);gap:3px;align-content:start;}
-.cal-cell{border-radius:7px;border:1px solid #2a2d3a;background:#1a1d26;padding:5px 6px;cursor:pointer;transition:border-color .15s,background .15s;position:relative;display:flex;flex-direction:column;min-height:52px;}
-.cal-cell:hover{border-color:#3a3d4e;background:#242736;}
-.cal-cell.other-month{opacity:.35;}
+#cal-section{flex:1;display:flex;flex-direction:column;overflow:hidden;padding:12px 14px 10px;}
+#cal-nav{display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-shrink:0;}
+#cal-month-label{font-size:16px;font-weight:700;color:#e8e6df;flex:1;}
+#cal-nav-btns{display:flex;gap:4px;}
+.cal-nav-btn{background:#242736;border:1px solid #3a3d4e;color:#c2c0b6;padding:7px 14px;border-radius:8px;cursor:pointer;font-size:15px;min-height:38px;-webkit-tap-highlight-color:transparent;}
+.cal-nav-btn:active{background:#2e3142;}
+.cal-today-btn{background:#c9a84c22;border:1px solid #c9a84c44;color:#c9a84c;padding:7px 12px;border-radius:8px;cursor:pointer;font-size:11px;font-family:inherit;-webkit-tap-highlight-color:transparent;}
+.cal-today-btn:active{background:#c9a84c33;}
+#cal-add-btn{background:#1d9e7522;border:1px solid #1d9e7566;color:#5dcaa5;padding:7px 13px;border-radius:8px;cursor:pointer;font-size:12px;font-family:inherit;-webkit-tap-highlight-color:transparent;}
+#cal-add-btn:active{background:#1d9e7533;}
+#cal-legend{display:flex;gap:10px;font-size:9px;color:#6b6860;margin-bottom:8px;flex-shrink:0;flex-wrap:wrap;}
+#cal-legend span{display:flex;align-items:center;gap:4px;}
+.cal-legend-dot{width:8px;height:8px;border-radius:2px;flex-shrink:0;}
+#cal-grid-wrap{flex:1;overflow:hidden;display:flex;flex-direction:column;min-height:0;}
+#cal-dow-header{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:3px;flex-shrink:0;}
+.cal-dow{text-align:center;font-size:9px;color:#6b6860;padding:2px 0;font-weight:600;letter-spacing:.4px;}
+#cal-grid{flex:1;display:grid;grid-template-columns:repeat(7,1fr);gap:2px;align-content:start;}
+.cal-cell{border-radius:7px;border:1px solid #2a2d3a;background:#1a1d26;padding:5px 4px;cursor:pointer;position:relative;display:flex;flex-direction:column;min-height:62px;-webkit-tap-highlight-color:transparent;}
+.cal-cell:active{background:#242736;}
+.cal-cell.other-month{opacity:.3;}
 .cal-cell.today-cell{border-color:#c9a84c55 !important;background:#c9a84c0a;}
 .cal-cell.today-cell .cal-day-num{color:#c9a84c;font-weight:700;}
-.cal-day-num{font-size:12px;color:#888;font-weight:500;line-height:1;}
+.cal-day-num{font-size:11px;color:#888;font-weight:500;line-height:1;}
 .cal-events{display:flex;flex-direction:column;gap:2px;margin-top:3px;flex:1;}
-.cal-event{font-size:10px;padding:2px 5px;border-radius:3px;line-height:1.3;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.cal-event{font-size:9px;padding:2px 4px;border-radius:3px;line-height:1.4;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .cal-event.training{background:#1d9e7522;color:#5dcaa5;border-left:2px solid #1d9e75;}
 .cal-event.training.attended{background:#1d9e7533;color:#5dcaa5;}
 .cal-event.training.missed{background:#e24b4a18;color:#f09595;border-left:2px solid #e24b4a;text-decoration:line-through;}
 .cal-event.competition{background:#c9a84c22;color:#c9a84c;border-left:2px solid #c9a84c;}
-/* ── Modal ── */
-#cal-modal-overlay{position:fixed;inset:0;background:#00000088;z-index:100;display:none;align-items:center;justify-content:center;}
+
+/* ── Event Modal (bottom sheet) ── */
+#cal-modal-overlay{position:fixed;inset:0;background:#00000099;z-index:100;display:none;align-items:flex-end;justify-content:center;}
 #cal-modal-overlay.open{display:flex;}
-#cal-modal{background:#1a1d26;border:1px solid #2a2d3a;border-radius:12px;padding:24px;width:360px;max-width:95vw;position:relative;}
-#cal-modal h3{font-size:14px;font-weight:700;color:#c9a84c;margin-bottom:16px;}
-#cal-modal label{font-size:11px;color:#888;display:block;margin-bottom:4px;margin-top:12px;}
-#cal-modal input[type=text],#cal-modal input[type=date],#cal-modal select,#cal-modal textarea{width:100%;background:#242736;border:1px solid #3a3d4e;color:#e8e6df;padding:7px 9px;border-radius:6px;font-size:12px;font-family:inherit;}
-#cal-modal textarea{resize:vertical;min-height:56px;}
+#cal-modal{
+  background:#1a1d26;border:1px solid #2a2d3a;
+  border-radius:18px 18px 0 0;
+  padding:0 0 calc(16px + env(safe-area-inset-bottom,0px));
+  width:100%;max-width:520px;position:relative;
+  max-height:88vh;overflow-y:auto;-webkit-overflow-scrolling:touch;
+}
+#cal-modal-knob-row{text-align:center;padding:12px 0 4px;}
+#cal-modal-knob{display:inline-block;width:40px;height:4px;background:#3a3d4e;border-radius:2px;}
+#cal-modal-inner{padding:0 20px;}
+#cal-modal h3{font-size:16px;font-weight:700;color:#c9a84c;margin-bottom:16px;}
+#cal-modal label{font-size:12px;color:#888;display:block;margin-bottom:5px;margin-top:14px;}
+#cal-modal input[type=text],#cal-modal input[type=date],#cal-modal select,#cal-modal textarea{width:100%;background:#242736;border:1px solid #3a3d4e;color:#e8e6df;padding:11px 12px;border-radius:8px;font-size:15px;font-family:inherit;}
+#cal-modal textarea{resize:vertical;min-height:60px;}
 #cal-modal input:focus,#cal-modal select:focus,#cal-modal textarea:focus{outline:none;border-color:#c9a84c;}
 #cal-modal select option{background:#242736;}
-.modal-btns{display:flex;gap:8px;margin-top:16px;}
-.modal-btn{flex:1;padding:9px;border-radius:7px;cursor:pointer;font-size:12px;font-family:inherit;transition:background .15s;border:1px solid;}
+.modal-btns{display:flex;gap:8px;margin-top:18px;}
+.modal-btn{flex:1;padding:14px;border-radius:10px;cursor:pointer;font-size:14px;font-family:inherit;transition:background .15s;border:1px solid;min-height:48px;-webkit-tap-highlight-color:transparent;}
 .modal-btn.primary{background:#c9a84c22;border-color:#c9a84c55;color:#c9a84c;}
-.modal-btn.primary:hover{background:#c9a84c33;}
+.modal-btn.primary:active{background:#c9a84c33;}
 .modal-btn.secondary{background:#242736;border-color:#3a3d4e;color:#888;}
-.modal-btn.secondary:hover{background:#2e3142;}
+.modal-btn.secondary:active{background:#2e3142;}
 .modal-btn.del{background:#e24b4a18;border-color:#e24b4a44;color:#e24b4a;}
-.modal-btn.del:hover{background:#e24b4a28;}
-#cal-modal-close{position:absolute;top:12px;right:14px;background:none;border:none;color:#888;cursor:pointer;font-size:18px;line-height:1;}
-#cal-modal-close:hover{color:#e8e6df;}
-/* ── Type toggle ── */
-.type-toggle{display:flex;gap:0;border:1px solid #3a3d4e;border-radius:7px;overflow:hidden;margin-top:6px;}
-.type-toggle button{flex:1;padding:7px 4px;background:#242736;border:none;color:#888;font-size:12px;font-family:inherit;cursor:pointer;transition:background .15s,color .15s;}
+.modal-btn.del:active{background:#e24b4a28;}
+#cal-modal-close{position:absolute;top:14px;right:18px;background:none;border:none;color:#888;cursor:pointer;font-size:22px;line-height:1;-webkit-tap-highlight-color:transparent;}
+#cal-modal-close:active{color:#e8e6df;}
+
+/* ── Type / Status toggles ── */
+.type-toggle{display:flex;border:1px solid #3a3d4e;border-radius:10px;overflow:hidden;margin-top:8px;}
+.type-toggle button{flex:1;padding:11px 4px;background:#242736;border:none;color:#888;font-size:14px;font-family:inherit;cursor:pointer;transition:background .15s,color .15s;-webkit-tap-highlight-color:transparent;}
 .type-toggle button.active{background:#c9a84c22;color:#c9a84c;}
-.status-toggle{display:flex;gap:0;border:1px solid #3a3d4e;border-radius:7px;overflow:hidden;margin-top:6px;}
-.status-toggle button{flex:1;padding:7px 4px;background:#242736;border:none;color:#888;font-size:12px;font-family:inherit;cursor:pointer;transition:all .15s;}
+.status-toggle{display:flex;border:1px solid #3a3d4e;border-radius:10px;overflow:hidden;margin-top:8px;}
+.status-toggle button{flex:1;padding:11px 4px;background:#242736;border:none;color:#888;font-size:13px;font-family:inherit;cursor:pointer;transition:all .15s;-webkit-tap-highlight-color:transparent;}
 .status-toggle button.att{background:#1d9e7522;color:#5dcaa5;}
 .status-toggle button.mis{background:#e24b4a18;color:#f09595;}
 .status-toggle button.sch{background:#3a3d4e;color:#b4b2a9;}
-::-webkit-scrollbar{width:6px;} ::-webkit-scrollbar-track{background:transparent;} ::-webkit-scrollbar-thumb{background:#2a2d3a;border-radius:3px;}
-/* ── PWA / Mobile ── */
-#canvas{touch-action:none;}
-body{overscroll-behavior:none;padding-bottom:env(safe-area-inset-bottom,0);}
-@media (display-mode:standalone){
-  #topbar{padding-top:env(safe-area-inset-top,0);}
-}
-@media (max-width:600px){
-  kbd{display:none;}
-  .mode-label{display:none;}
-  .tb-sep{display:none;}
-  #toolbar{gap:4px;padding:6px 8px;}
-  .tb-btn{padding:5px 8px;font-size:11px;}
-  #panel{width:min(290px,100vw);border-left:none;border-top:1px solid #2a2d3a;}
-  #cal-modal{width:95vw;padding:16px;}
-  #journal-sidebar{width:180px;}
-}
+
+/* ── Scrollbars ── */
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:#2a2d3a;border-radius:2px;}
 </style>
 </head>
 <body>
+
+<!-- TOPBAR -->
 <div id="topbar">
-  <div id="tab-bar">
-    <button class="tab-btn active" id="tab-chart"    onclick="switchTab('chart')">⬡ Flowchart</button>
-    <button class="tab-btn"        id="tab-journal"  onclick="switchTab('journal')">📓 Journal</button>
-    <button class="tab-btn"        id="tab-calendar" onclick="switchTab('calendar')">📅 Calendar</button>
-  </div>
-  <div id="toolbar">
-    <span class="mode-label">MODE:</span>
-    <button class="tb-btn active" id="btn-select"  onclick="setMode('select')">↖ Select <kbd>A</kbd></button>
-    <button class="tb-btn"        id="btn-add"     onclick="setMode('add')">+ Technique <kbd>S</kbd></button>
-    <button class="tb-btn"        id="btn-connect" onclick="setMode('connect')">⟶ Connect <kbd>D</kbd></button>
-    <button class="tb-btn"        id="btn-group"   onclick="setMode('group')">▣ Group <kbd>F</kbd></button>
-    <div class="tb-sep"></div>
-    <button class="tb-btn" onclick="resetView()">⊙ Fit View</button>
-    <button class="tb-btn" onclick="clearAll()">✕ Clear All</button>
-    <div class="tb-sep"></div>
-    <button class="tb-btn save" onclick="saveData()">💾 Save</button>
-    <button class="tb-btn save" onclick="loadData()">📂 Load</button>
-    <input type="file" id="load-file" accept=".bjjflow,.json" style="display:none" onchange="loadFile(this)">
-  </div>
+  <span id="app-title">⬡ BJJ Flow</span>
+  <button id="nav-btn" onclick="toggleNavMenu()">
+    <span id="nav-label">Flowchart</span><span id="nav-chev">▾</span>
+  </button>
+</div>
+
+<!-- NAV DROPDOWN -->
+<div id="nav-overlay" onclick="closeNavMenu()"></div>
+<div id="nav-menu">
+  <button class="nav-item active" id="nav-chart"    onclick="switchTab('chart');closeNavMenu()"><span class="ni">⬡</span> Flowchart</button>
+  <button class="nav-item"        id="nav-journal"  onclick="switchTab('journal');closeNavMenu()"><span class="ni">📓</span> Journal</button>
+  <button class="nav-item"        id="nav-calendar" onclick="switchTab('calendar');closeNavMenu()"><span class="ni">📅</span> Calendar</button>
 </div>
 
 <!-- CHART PAGE -->
 <div id="page-chart">
   <div id="canvas-wrap">
     <canvas id="canvas"></canvas>
+
+    <!-- Panel (bottom sheet, lives inside canvas-wrap) -->
     <div id="panel">
-      <button class="panel-close" onclick="closePanel()">✕</button>
-      <h2 id="panel-title">Technique</h2>
+      <div id="panel-knob-row"><div id="panel-knob"></div></div>
+      <div id="panel-titlebar">
+        <span id="panel-title">Technique</span>
+        <button class="panel-close" onclick="closePanel()">✕</button>
+      </div>
       <div id="pf-node">
-        <label>Name</label><input id="pn-name" type="text" placeholder="e.g. Guard Pull" oninput="liveApplyNode()">
+        <label>Name</label>
+        <input id="pn-name" type="text" placeholder="e.g. Guard Pull" oninput="liveApplyNode()">
         <label>Category</label>
         <select id="pn-cat" onchange="liveApplyNode()">
           <option>Position</option><option>Submission</option><option>Sweep</option>
@@ -237,7 +331,8 @@ body{overscroll-behavior:none;padding-bottom:env(safe-area-inset-bottom,0);}
         <button class="panel-btn danger" onclick="deleteSelected()">✕ Delete Connection</button>
       </div>
       <div id="pf-group" style="display:none">
-        <label>Group Label</label><input id="pg-label" type="text" placeholder="e.g. Guard Game" oninput="liveApplyGroup()">
+        <label>Group Label</label>
+        <input id="pg-label" type="text" placeholder="e.g. Guard Game" oninput="liveApplyGroup()">
         <label>Border Colour</label><div class="color-row" id="group-cr"></div>
         <div class="panel-section">
           <label style="margin-top:0">Notes</label>
@@ -247,6 +342,7 @@ body{overscroll-behavior:none;padding-bottom:env(safe-area-inset-bottom,0);}
         </div>
       </div>
     </div>
+
     <div id="legend">
       <div><span class="leg-dot" style="background:#3b8bd4"></span>Position</div>
       <div><span class="leg-dot" style="background:#e24b4a"></span>Submission</div>
@@ -259,6 +355,23 @@ body{overscroll-behavior:none;padding-bottom:env(safe-area-inset-bottom,0);}
     </div>
     <div id="hint"></div>
     <div id="toast"></div>
+  </div>
+
+  <!-- Bottom toolbar -->
+  <div id="chart-toolbar">
+    <div id="mode-btns">
+      <button class="mb-btn active" id="mb-select"  onclick="setMode('select')"><span class="mb-icon">↖</span><span class="mb-label">Select</span></button>
+      <button class="mb-btn"        id="mb-add"     onclick="setMode('add')"><span class="mb-icon">＋</span><span class="mb-label">Add</span></button>
+      <button class="mb-btn"        id="mb-connect" onclick="setMode('connect')"><span class="mb-icon">→</span><span class="mb-label">Link</span></button>
+      <button class="mb-btn"        id="mb-group"   onclick="setMode('group')"><span class="mb-icon">▣</span><span class="mb-label">Group</span></button>
+    </div>
+    <div id="action-btns">
+      <button class="ab-btn" onclick="resetView()" title="Fit View">⊙</button>
+      <button class="ab-btn" onclick="saveData()"  title="Save">💾</button>
+      <button class="ab-btn" onclick="loadData()"  title="Load">📂</button>
+      <button class="ab-btn ab-danger" onclick="clearAll()" title="Clear All">✕</button>
+    </div>
+    <input type="file" id="load-file" accept=".bjjflow,.json" style="display:none" onchange="loadFile(this)">
   </div>
 </div>
 
@@ -283,7 +396,6 @@ body{overscroll-behavior:none;padding-bottom:env(safe-area-inset-bottom,0);}
 
 <!-- CALENDAR PAGE -->
 <div id="page-calendar">
-  <!-- Top 1/3: Attendance graph -->
   <div id="cal-graph-section">
     <div id="cal-graph-header">
       <span id="cal-graph-title">Attendance Consistency</span>
@@ -301,7 +413,6 @@ body{overscroll-behavior:none;padding-bottom:env(safe-area-inset-bottom,0);}
     </div>
     <div id="graph-canvas-wrap"><canvas id="graph-canvas"></canvas></div>
   </div>
-  <!-- Bottom 2/3: Calendar -->
   <div id="cal-section">
     <div id="cal-nav">
       <span id="cal-month-label"></span>
@@ -310,12 +421,12 @@ body{overscroll-behavior:none;padding-bottom:env(safe-area-inset-bottom,0);}
         <button class="cal-nav-btn" onclick="calNext()">›</button>
       </div>
       <button class="cal-today-btn" onclick="calToday()">Today</button>
-      <button id="cal-add-btn" onclick="openAddEvent(null)">+ Add Event</button>
+      <button id="cal-add-btn" onclick="openAddEvent(null)">+ Add</button>
     </div>
     <div id="cal-legend">
-      <span><span class="cal-legend-dot" style="background:#1d9e75"></span>Training – Scheduled</span>
-      <span><span class="cal-legend-dot" style="background:#1d9e75;opacity:.5"></span>Training – Attended</span>
-      <span><span class="cal-legend-dot" style="background:#e24b4a"></span>Training – Missed</span>
+      <span><span class="cal-legend-dot" style="background:#1d9e75"></span>Scheduled</span>
+      <span><span class="cal-legend-dot" style="background:#1d9e75;opacity:.5"></span>Attended</span>
+      <span><span class="cal-legend-dot" style="background:#e24b4a"></span>Missed</span>
       <span><span class="cal-legend-dot" style="background:#c9a84c"></span>Competition</span>
     </div>
     <div id="cal-grid-wrap">
@@ -328,34 +439,37 @@ body{overscroll-behavior:none;padding-bottom:env(safe-area-inset-bottom,0);}
   </div>
 </div>
 
-<!-- EVENT MODAL -->
+<!-- EVENT MODAL (bottom sheet) -->
 <div id="cal-modal-overlay">
   <div id="cal-modal">
+    <div id="cal-modal-knob-row"><div id="cal-modal-knob"></div></div>
     <button id="cal-modal-close" onclick="closeModal()">✕</button>
-    <h3 id="modal-title">Add Event</h3>
-    <label>Event Type</label>
-    <div class="type-toggle">
-      <button id="mtype-training" class="active" onclick="setModalType('training')">🥋 Training</button>
-      <button id="mtype-competition" onclick="setModalType('competition')">🏆 Competition</button>
-    </div>
-    <label>Date</label>
-    <input type="date" id="m-date">
-    <label>Title / Label</label>
-    <input type="text" id="m-title" placeholder="e.g. Monday Gi Class">
-    <div id="m-status-row">
-      <label>Attendance Status</label>
-      <div class="status-toggle">
-        <button id="mst-scheduled" class="active sch" onclick="setModalStatus('scheduled')">Scheduled</button>
-        <button id="mst-attended"  onclick="setModalStatus('attended')">✓ Attended</button>
-        <button id="mst-missed"    onclick="setModalStatus('missed')">✗ Missed</button>
+    <div id="cal-modal-inner">
+      <h3 id="modal-title">Add Event</h3>
+      <label>Event Type</label>
+      <div class="type-toggle">
+        <button id="mtype-training" class="active" onclick="setModalType('training')">🥋 Training</button>
+        <button id="mtype-competition" onclick="setModalType('competition')">🏆 Competition</button>
       </div>
-    </div>
-    <label>Notes</label>
-    <textarea id="m-notes" placeholder="Details, opponent, result..."></textarea>
-    <div class="modal-btns">
-      <button class="modal-btn primary" onclick="saveModalEvent()">Save</button>
-      <button class="modal-btn secondary" onclick="closeModal()">Cancel</button>
-      <button class="modal-btn del" id="modal-del-btn" style="display:none" onclick="deleteModalEvent()">Delete</button>
+      <label>Date</label>
+      <input type="date" id="m-date">
+      <label>Title / Label</label>
+      <input type="text" id="m-title" placeholder="e.g. Monday Gi Class">
+      <div id="m-status-row">
+        <label>Attendance Status</label>
+        <div class="status-toggle">
+          <button id="mst-scheduled" class="active sch" onclick="setModalStatus('scheduled')">Scheduled</button>
+          <button id="mst-attended"  onclick="setModalStatus('attended')">✓ Attended</button>
+          <button id="mst-missed"    onclick="setModalStatus('missed')">✗ Missed</button>
+        </div>
+      </div>
+      <label>Notes</label>
+      <textarea id="m-notes" placeholder="Details, opponent, result..."></textarea>
+      <div class="modal-btns">
+        <button class="modal-btn primary" onclick="saveModalEvent()">Save</button>
+        <button class="modal-btn secondary" onclick="closeModal()">Cancel</button>
+        <button class="modal-btn del" id="modal-del-btn" style="display:none" onclick="deleteModalEvent()">Delete</button>
+      </div>
     </div>
   </div>
 </div>
@@ -422,15 +536,27 @@ buildSwatches('node-cr',SWATCHES,liveApplyNode);
 buildSwatches('group-cr',GSWATCHES,liveApplyGroup);
 
 // ═══════════════════════════════════════════
-//  TABS
+//  NAV / TABS
 // ═══════════════════════════════════════════
+const TAB_LABELS={chart:'Flowchart',journal:'Journal',calendar:'Calendar'};
+function toggleNavMenu(){
+  const open=!document.getElementById('nav-menu').classList.contains('open');
+  document.getElementById('nav-menu').classList.toggle('open',open);
+  document.getElementById('nav-overlay').classList.toggle('open',open);
+  document.getElementById('nav-btn').classList.toggle('open',open);
+}
+function closeNavMenu(){
+  document.getElementById('nav-menu').classList.remove('open');
+  document.getElementById('nav-overlay').classList.remove('open');
+  document.getElementById('nav-btn').classList.remove('open');
+}
 function switchTab(t){
   currentTab=t;
+  document.getElementById('nav-label').textContent=TAB_LABELS[t]||t;
   ['chart','journal','calendar'].forEach(k=>{
-    document.getElementById('page-'+k).style.display=k===t?(k==='chart'?'flex':k==='calendar'?'flex':'block'):'none';
-    document.getElementById('tab-'+k).classList.toggle('active',k===t);
+    document.getElementById('page-'+k).style.display=k===t?(k==='chart'||k==='calendar'?'flex':'block'):'none';
+    const nb=document.getElementById('nav-'+k);if(nb)nb.classList.toggle('active',k===t);
   });
-  document.getElementById('toolbar').style.display=t==='chart'?'flex':'none';
   if(t==='chart')setTimeout(resize,10);
   if(t==='journal')renderJournalList();
   if(t==='calendar'){renderCalendar();setTimeout(drawGraph,30);}
@@ -441,12 +567,12 @@ function switchTab(t){
 // ═══════════════════════════════════════════
 function setMode(m){
   mode=m;connectSrc=null;groupDrawStart=null;groupDrawCurrent=null;
-  ['select','add','connect','group'].forEach(k=>{const b=document.getElementById('btn-'+k);if(b)b.classList.toggle('active',k===m);});
+  ['select','add','connect','group'].forEach(k=>{const b=document.getElementById('mb-'+k);if(b)b.classList.toggle('active',k===m);});
   canvas.style.cursor=(m==='add'||m==='group')?'crosshair':'default';
   updateHint();draw();
 }
 function updateHint(){
-  const H2={select:'Click to select · Drag to move · Scroll to zoom · Drag canvas to pan',add:'Click anywhere to place a technique node  [S]',connect:connectSrc?'Click target node — ESC to cancel':'Click source node to start connection  [D]',group:'Click and drag to draw a group border  [F]'};
+  const H2={select:'Tap to select · Drag to move · Pinch to zoom',add:'Tap anywhere to place a technique',connect:connectSrc?'Tap target node — ESC to cancel':'Tap source node to start a connection',group:'Drag to draw a group border'};
   document.getElementById('hint').textContent=H2[mode]||'';
 }
 
@@ -559,7 +685,7 @@ function clip(c,t,mw){if(c.measureText(t).width<=mw)return t;while(t.length>3&&c
 function rr(c,x,y,w,h,r){if(typeof c.roundRect==='function'){c.roundRect(x,y,w,h,r);return;}c.moveTo(x+r,y);c.lineTo(x+w-r,y);c.quadraticCurveTo(x+w,y,x+w,y+r);c.lineTo(x+w,y+h-r);c.quadraticCurveTo(x+w,y+h,x+w-r,y+h);c.lineTo(x+r,y+h);c.quadraticCurveTo(x,y+h,x,y+h-r);c.lineTo(x,y+r);c.quadraticCurveTo(x,y,x+r,y);}
 
 // ═══════════════════════════════════════════
-//  MOUSE EVENTS
+//  MOUSE / TOUCH EVENTS
 // ═══════════════════════════════════════════
 canvas.addEventListener('mousemove',e=>{
   const rc=canvas.getBoundingClientRect(),px=e.clientX-rc.left,py=e.clientY-rc.top;
@@ -614,11 +740,66 @@ canvas.addEventListener('wheel',e=>{
 },{passive:false});
 let lastTouches=null;
 canvas.addEventListener('touchstart',e=>{e.preventDefault();lastTouches=e.touches;},{passive:false});
-canvas.addEventListener('touchmove',e=>{e.preventDefault();if(e.touches.length===1&&lastTouches.length===1){pan.x+=e.touches[0].clientX-lastTouches[0].clientX;pan.y+=e.touches[0].clientY-lastTouches[0].clientY;}else if(e.touches.length===2&&lastTouches.length===2){const d1=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY),d2=Math.hypot(lastTouches[0].clientX-lastTouches[1].clientX,lastTouches[0].clientY-lastTouches[1].clientY);zoom=Math.max(0.15,Math.min(4,zoom*(d1/d2||1)));}lastTouches=e.touches;draw();},{passive:false});
+canvas.addEventListener('touchmove',e=>{
+  e.preventDefault();
+  if(e.touches.length===1&&lastTouches.length===1){
+    const dx=e.touches[0].clientX-lastTouches[0].clientX,dy=e.touches[0].clientY-lastTouches[0].clientY;
+    if(dragging){
+      const rc=canvas.getBoundingClientRect();
+      dragging.x=wx(e.touches[0].clientX-rc.left)+dragOff.x;
+      dragging.y=wy(e.touches[0].clientY-rc.top)+dragOff.y;
+    } else {
+      pan.x+=dx;pan.y+=dy;
+    }
+  } else if(e.touches.length===2&&lastTouches.length===2){
+    const d1=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
+    const d2=Math.hypot(lastTouches[0].clientX-lastTouches[1].clientX,lastTouches[0].clientY-lastTouches[1].clientY);
+    const cx=(e.touches[0].clientX+e.touches[1].clientX)/2,cy=(e.touches[0].clientY+e.touches[1].clientY)/2;
+    const rc=canvas.getBoundingClientRect(),px=cx-rc.left,py=cy-rc.top;
+    const nz=Math.max(0.15,Math.min(4,zoom*(d1/d2||1)));
+    pan.x=px-(px-pan.x)*(nz/zoom);pan.y=py-(py-pan.y)*(nz/zoom);zoom=nz;
+  }
+  lastTouches=e.touches;draw();
+},{passive:false});
+canvas.addEventListener('touchend',e=>{
+  if(mode==='add'&&e.changedTouches.length===1&&lastTouches&&lastTouches.length===1){
+    const rc=canvas.getBoundingClientRect(),t=e.changedTouches[0];
+    const px=t.clientX-rc.left,py=t.clientY-rc.top;
+    if(!getNodeAt(px,py)){
+      nodes.push({id:++idSeq,name:'New Technique',cat:'Position',notes:'',x:wx(px),y:wy(py),w:150,h:64,customColor:null});
+      selectThing({type:'node',id:nodes[nodes.length-1].id});draw();
+    }
+  }
+  if(mode==='connect'&&e.changedTouches.length===1&&lastTouches&&lastTouches.length===1){
+    const rc=canvas.getBoundingClientRect(),t=e.changedTouches[0];
+    const px=t.clientX-rc.left,py=t.clientY-rc.top,n=getNodeAt(px,py);
+    if(n){
+      if(!connectSrc){connectSrc=n;updateHint();draw();}
+      else if(connectSrc.id!==n.id){
+        if(!edges.find(ed=>ed.src===connectSrc.id&&ed.dst===n.id)){edges.push({id:++idSeq,src:connectSrc.id,dst:n.id,note:'',style:'solid'});selectThing({type:'edge',id:edges[edges.length-1].id});}
+        connectSrc=null;updateHint();draw();
+      }
+    }
+  }
+  if(mode==='select'&&e.changedTouches.length===1&&lastTouches&&lastTouches.length===1){
+    const rc=canvas.getBoundingClientRect(),t=e.changedTouches[0];
+    const startT=lastTouches[0];
+    const dx=t.clientX-startT.clientX,dy=t.clientY-startT.clientY;
+    if(Math.hypot(dx,dy)<8){
+      const px=t.clientX-rc.left,py=t.clientY-rc.top;
+      const n=getNodeAt(px,py);
+      if(n){selectThing({type:'node',id:n.id});draw();return;}
+      const edge=getEdgeAt(px,py);if(edge){selectThing({type:'edge',id:edge.id});draw();return;}
+      const g=getGroupAt(px,py);if(g){selectThing({type:'group',id:g.id});draw();return;}
+      selectThing(null);draw();
+    }
+  }
+  dragging=null;draggingGroup=null;panning=false;
+},{passive:false});
 document.addEventListener('keydown',e=>{
   const inInput=['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName);
   if(!inInput&&currentTab==='chart'){if(e.key==='a'||e.key==='A')setMode('select');if(e.key==='s'||e.key==='S')setMode('add');if(e.key==='d'||e.key==='D')setMode('connect');if(e.key==='f'||e.key==='F')setMode('group');}
-  if(e.key==='Escape'){connectSrc=null;groupDrawStart=null;groupDrawCurrent=null;if(currentTab==='chart')setMode('select');closeModal();}
+  if(e.key==='Escape'){connectSrc=null;groupDrawStart=null;groupDrawCurrent=null;closeNavMenu();if(currentTab==='chart')setMode('select');closeModal();}
   if((e.key==='Delete'||e.key==='Backspace')&&selected&&!inInput)deleteSelected();
 });
 
@@ -669,7 +850,7 @@ function deleteSelected(){
 }
 
 // ═══════════════════════════════════════════
-//  TOOLBAR
+//  TOOLBAR ACTIONS
 // ═══════════════════════════════════════════
 function resetView(){
   if(!nodes.length&&!groups.length){pan={x:W/2,y:H/2};zoom=1;draw();return;}
@@ -770,7 +951,6 @@ function renderCalendar(){
   }
 }
 
-// ── Graph ──────────────────────────────────
 function setGraphRange(months,btn){
   graphRangeMonths=months;
   document.querySelectorAll('.graph-range-btn').forEach(b=>b.classList.remove('active'));
@@ -783,19 +963,15 @@ function drawGraph(){
   if(!gw||!gh)return;
   gc.width=gw;gc.height=gh;
   const gctx=gc.getContext('2d');gctx.clearRect(0,0,gw,gh);
-
-  // Build weekly buckets
   const now=new Date();
   let startDate;
   if(graphRangeMonths===0){
-    // All time — find earliest event
     if(!calEvents.length){drawEmptyGraph(gctx,gw,gh);return;}
     const earliest=calEvents.reduce((m,e)=>e.date<m?e.date:m,calEvents[0].date);
     startDate=new Date(earliest);startDate.setDate(startDate.getDate()-startDate.getDay());
   }else{
     startDate=new Date(now);startDate.setMonth(startDate.getMonth()-graphRangeMonths);startDate.setDate(startDate.getDate()-startDate.getDay());
   }
-
   const weeks=[];let cur=new Date(startDate);
   while(cur<=now){
     const wStart=new Date(cur);const wEnd=new Date(cur);wEnd.setDate(wEnd.getDate()+6);
@@ -807,61 +983,40 @@ function drawGraph(){
     weeks.push({label:wStart.toLocaleDateString(undefined,{month:'short',day:'numeric'}),att,mis,sch,rate,wStart:new Date(wStart)});
     cur.setDate(cur.getDate()+7);
   }
-
   if(!weeks.length){drawEmptyGraph(gctx,gw,gh);return;}
-
   const PAD={l:44,r:16,t:12,b:28};
   const chartW=gw-PAD.l-PAD.r,chartH=gh-PAD.t-PAD.b;
   const maxBars=Math.min(weeks.length,Math.floor(chartW/18));
   const displayWeeks=weeks.slice(-maxBars);
   const barW=Math.max(6,Math.floor(chartW/displayWeeks.length)-3);
   const maxVal=Math.max(1,...displayWeeks.map(w=>w.att+w.mis+w.sch));
-
-  // Grid lines
   gctx.strokeStyle='#2a2d3a';gctx.lineWidth=1;
   for(let i=0;i<=4;i++){const y=PAD.t+chartH-(i/4)*chartH;gctx.beginPath();gctx.moveTo(PAD.l,y);gctx.lineTo(PAD.l+chartW,y);gctx.stroke();}
-
-  // Y axis labels
   gctx.fillStyle='#6b6860';gctx.font='10px Segoe UI';gctx.textAlign='right';gctx.textBaseline='middle';
   for(let i=0;i<=4;i++){const y=PAD.t+chartH-(i/4)*chartH;gctx.fillText(Math.round(i/4*maxVal),PAD.l-5,y);}
-
-  // Bars + rate line points
   const ratePoints=[];
   displayWeeks.forEach((w,i)=>{
     const x=PAD.l+i*(chartW/displayWeeks.length)+(chartW/displayWeeks.length-barW)/2;
     const totalH=w.att+w.mis+w.sch;
-    // Scheduled (grey)
     if(w.sch>0){const bh=Math.max(1,(w.sch/maxVal)*chartH);gctx.fillStyle='#3a3d4e';gctx.fillRect(x,PAD.t+chartH-bh*(w.att+w.mis+w.sch)/totalH-(bh*(w.att+w.mis)/totalH||0),barW,bh*(w.sch/totalH)||bh);}
-    // Missed (red)
     if(w.mis>0){const bh=(w.mis/maxVal)*chartH;gctx.fillStyle='#e24b4a55';gctx.fillRect(x,PAD.t+chartH-(w.att+w.mis)/maxVal*chartH,barW,(w.mis/maxVal)*chartH);}
-    // Attended (green)
     if(w.att>0){const bh=(w.att/maxVal)*chartH;gctx.fillStyle='#1d9e7588';gctx.fillRect(x,PAD.t+chartH-(w.att/maxVal)*chartH,barW,bh);}
-    // X label — show every Nth week
     const every=Math.max(1,Math.ceil(displayWeeks.length/8));
     if(i%every===0){gctx.fillStyle='#6b6860';gctx.font='9px Segoe UI';gctx.textAlign='center';gctx.textBaseline='top';gctx.fillText(w.label,x+barW/2,PAD.t+chartH+5);}
-    // Rate point
     if(w.rate!==null)ratePoints.push({x:x+barW/2,y:PAD.t+chartH-(w.rate/100)*chartH,rate:w.rate});
   });
-
-  // Rate line
   if(ratePoints.length>1){
     gctx.strokeStyle='#c9a84c';gctx.lineWidth=2;gctx.lineJoin='round';
     gctx.beginPath();ratePoints.forEach((p,i)=>i===0?gctx.moveTo(p.x,p.y):gctx.lineTo(p.x,p.y));gctx.stroke();
-    // Dots
     ratePoints.forEach(p=>{gctx.fillStyle='#c9a84c';gctx.beginPath();gctx.arc(p.x,p.y,3,0,Math.PI*2);gctx.fill();});
   }
-
-  // Y axis line
   gctx.strokeStyle='#2a2d3a';gctx.lineWidth=1;gctx.beginPath();gctx.moveTo(PAD.l,PAD.t);gctx.lineTo(PAD.l,PAD.t+chartH);gctx.stroke();
-
-  // Summary stats
   const totalAtt=displayWeeks.reduce((s,w)=>s+w.att,0);
   const totalMis=displayWeeks.reduce((s,w)=>s+w.mis,0);
   const overallRate=totalAtt+totalMis>0?Math.round(totalAtt/(totalAtt+totalMis)*100):null;
   gctx.fillStyle='#c9a84c';gctx.font='600 11px Segoe UI';gctx.textAlign='right';gctx.textBaseline='top';
   if(overallRate!==null)gctx.fillText(overallRate+'% attendance rate · '+totalAtt+' attended · '+totalMis+' missed',gw-PAD.r,PAD.t);
 }
-
 function drawEmptyGraph(gctx,gw,gh){
   gctx.fillStyle='#6b6860';gctx.font='13px Segoe UI';gctx.textAlign='center';gctx.textBaseline='middle';
   gctx.fillText('No training events yet — add some from the calendar below',gw/2,gh/2);
@@ -928,7 +1083,6 @@ function seed(){
   groups.push({id:++idSeq,label:'Guard Game',x:-310,y:-230,w:620,h:280,color:'#1d9e75',notes:'Bottom game starting positions'});
   groups.push({id:++idSeq,label:'Submissions',x:-470,y:-510,w:780,h:130,color:'#e24b4a',notes:'Finishing techniques'});
   journal.push({id:++idSeq,title:'First training session',body:'Started mapping out my guard game today. The connections between closed guard and the triangle/armbar feel natural but I need to work on the hip bump sweep timing.\n\nKey focus:\n- Guard retention when they try to pass\n- Kimura from half guard',created:new Date().toISOString(),updated:new Date().toISOString()});
-  // Seed some calendar events for the past ~8 weeks
   const today=new Date();
   const seedDays=[-54,-51,-47,-44,-40,-37,-33,-30,-26,-23,-19,-16,-12,-9,-5,-2,3,7];
   const seedStatus=['attended','attended','attended','missed','attended','attended','missed','attended','attended','attended','attended','missed','attended','attended','attended','attended','scheduled','scheduled'];
@@ -937,7 +1091,6 @@ function seed(){
     const ds=`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
     calEvents.push({id:++idSeq,type:'training',date:ds,title:d%7===0||d%7===3?'Gi Class':'No-Gi Class',status:seedStatus[i]||'scheduled',notes:''});
   });
-  // A competition
   const comp=new Date(today);comp.setDate(comp.getDate()-20);
   const compDs=`${comp.getFullYear()}-${String(comp.getMonth()+1).padStart(2,'0')}-${String(comp.getDate()).padStart(2,'0')}`;
   calEvents.push({id:++idSeq,type:'competition',date:compDs,title:'Local Tournament',status:'attended',notes:'Won 2, lost 1 in Gi intermediate division'});
