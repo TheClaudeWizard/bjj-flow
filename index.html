@@ -2,8 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>BJJ Flow</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="BJJ Flow">
+<meta name="theme-color" content="#1a1d26">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:'Segoe UI',sans-serif;background:#0f1117;color:#e8e6df;height:100vh;display:flex;flex-direction:column;overflow:hidden;}
@@ -152,6 +158,22 @@ kbd{display:inline-block;background:#2a2d3a;border:1px solid #3a3d4e;border-radi
 .status-toggle button.mis{background:#e24b4a18;color:#f09595;}
 .status-toggle button.sch{background:#3a3d4e;color:#b4b2a9;}
 ::-webkit-scrollbar{width:6px;} ::-webkit-scrollbar-track{background:transparent;} ::-webkit-scrollbar-thumb{background:#2a2d3a;border-radius:3px;}
+/* ── PWA / Mobile ── */
+#canvas{touch-action:none;}
+body{overscroll-behavior:none;padding-bottom:env(safe-area-inset-bottom,0);}
+@media (display-mode:standalone){
+  #topbar{padding-top:env(safe-area-inset-top,0);}
+}
+@media (max-width:600px){
+  kbd{display:none;}
+  .mode-label{display:none;}
+  .tb-sep{display:none;}
+  #toolbar{gap:4px;padding:6px 8px;}
+  .tb-btn{padding:5px 8px;font-size:11px;}
+  #panel{width:min(290px,100vw);border-left:none;border-top:1px solid #2a2d3a;}
+  #cal-modal{width:95vw;padding:16px;}
+  #journal-sidebar{width:180px;}
+}
 </style>
 </head>
 <body>
@@ -922,6 +944,11 @@ function seed(){
 }
 
 seed();resize();setMode('select');
+</script>
+<script>
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js'));
+}
 </script>
 </body>
 </html>
