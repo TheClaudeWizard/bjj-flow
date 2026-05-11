@@ -74,8 +74,8 @@ body{font-family:'Segoe UI',sans-serif;background:#0f1117;color:#e8e6df;height:1
   display:flex;align-items:center;justify-content:space-between;
   background:#1a1d26;border-top:1px solid #2a2d3a;flex-shrink:0;
   padding:0 12px;
-  padding-bottom:env(safe-area-inset-bottom,0px);
-  height:calc(62px + env(safe-area-inset-bottom,0px));
+  padding-bottom:calc(env(safe-area-inset-bottom,0px) + 14px);
+  height:calc(62px + env(safe-area-inset-bottom,0px) + 14px);
 }
 #mode-btns{display:flex;gap:2px;}
 .mb-btn{
@@ -154,7 +154,7 @@ body{font-family:'Segoe UI',sans-serif;background:#0f1117;color:#e8e6df;height:1
 #hint{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);background:#1a1d26cc;border:1px solid #2a2d3a;border-radius:20px;padding:5px 16px;font-size:11px;color:#6b6860;pointer-events:none;white-space:nowrap;z-index:5;}
 #toast{position:absolute;bottom:52px;left:50%;transform:translateX(-50%);background:#1d9e7522;border:1px solid #1d9e75;color:#5dcaa5;border-radius:8px;padding:8px 18px;font-size:12px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:25;white-space:nowrap;}
 #toast.show{opacity:1;}
-#legend{position:absolute;left:12px;bottom:12px;background:#1a1d26cc;border:1px solid #2a2d3a;border-radius:8px;padding:8px 10px;font-size:10px;color:#6b6860;pointer-events:none;z-index:5;}
+#legend{position:absolute;right:12px;top:12px;background:#1a1d26cc;border:1px solid #2a2d3a;border-radius:8px;padding:8px 10px;font-size:10px;color:#6b6860;pointer-events:none;z-index:5;}
 #legend div{display:flex;align-items:center;gap:6px;margin-bottom:3px;}
 #legend div:last-child{margin-bottom:0;}
 .leg-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
@@ -502,8 +502,10 @@ const wrap=document.getElementById('canvas-wrap');
 const panel=document.getElementById('panel');
 let W,H;
 function resize(){
+  const dpr=window.devicePixelRatio||1;
   W=wrap.clientWidth;H=wrap.clientHeight;
-  canvas.width=W;canvas.height=H;
+  canvas.width=Math.round(W*dpr);canvas.height=Math.round(H*dpr);
+  canvas.style.width=W+'px';canvas.style.height=H+'px';
   if(!panInitialized){pan={x:W/2,y:H/2};panInitialized=true;}
   draw();
 }
@@ -601,6 +603,8 @@ function getResizeHandle(g,px,py){
 // ═══════════════════════════════════════════
 function draw(){
   if(!W||!H)return;
+  const dpr=window.devicePixelRatio||1;
+  ctx.setTransform(dpr,0,0,dpr,0,0);
   ctx.clearRect(0,0,W,H);
   ctx.save();ctx.strokeStyle='#ffffff08';ctx.lineWidth=1;
   const gs=40*zoom,ox=((pan.x%gs)+gs)%gs,oy=((pan.y%gs)+gs)%gs;
@@ -739,62 +743,68 @@ canvas.addEventListener('wheel',e=>{
   pan.x=px-(px-pan.x)*(nz/zoom);pan.y=py-(py-pan.y)*(nz/zoom);zoom=nz;draw();
 },{passive:false});
 let lastTouches=null;
-canvas.addEventListener('touchstart',e=>{e.preventDefault();lastTouches=e.touches;},{passive:false});
+let touchStartX=0,touchStartY=0,touchMoved=false,hadMultiTouch=false;
+let touchHitNode=null,touchHitGroup=null;
+canvas.addEventListener('touchstart',e=>{
+  e.preventDefault();
+  lastTouches=e.touches;
+  hadMultiTouch=e.touches.length>1;
+  if(e.touches.length===1){
+    const t=e.touches[0],rc=canvas.getBoundingClientRect();
+    const px=t.clientX-rc.left,py=t.clientY-rc.top;
+    touchStartX=t.clientX;touchStartY=t.clientY;touchMoved=false;
+    touchHitNode=mode==='select'?getNodeAt(px,py):null;
+    touchHitGroup=(mode==='select'&&!touchHitNode)?getGroupAt(px,py):null;
+    if(mode==='group'){groupDrawStart={x:wx(px),y:wy(py)};groupDrawCurrent={x:wx(px),y:wy(py)};}
+  } else {
+    dragging=null;draggingGroup=null;
+  }
+},{passive:false});
 canvas.addEventListener('touchmove',e=>{
   e.preventDefault();
-  if(e.touches.length===1&&lastTouches.length===1){
-    const dx=e.touches[0].clientX-lastTouches[0].clientX,dy=e.touches[0].clientY-lastTouches[0].clientY;
-    if(dragging){
-      const rc=canvas.getBoundingClientRect();
-      dragging.x=wx(e.touches[0].clientX-rc.left)+dragOff.x;
-      dragging.y=wy(e.touches[0].clientY-rc.top)+dragOff.y;
-    } else {
-      pan.x+=dx;pan.y+=dy;
+  if(e.touches.length>1){hadMultiTouch=true;dragging=null;draggingGroup=null;}
+  if(!hadMultiTouch&&e.touches.length===1&&lastTouches.length===1){
+    const t=e.touches[0],rc=canvas.getBoundingClientRect();
+    if(!touchMoved&&Math.hypot(t.clientX-touchStartX,t.clientY-touchStartY)>6){
+      touchMoved=true;
+      if(mode==='select'&&touchHitNode){dragging=touchHitNode;dragOff={x:touchHitNode.x-wx(touchStartX-rc.left),y:touchHitNode.y-wy(touchStartY-rc.top)};}
+      else if(mode==='select'&&touchHitGroup){draggingGroup=touchHitGroup;dragGroupOff={x:touchHitGroup.x-wx(touchStartX-rc.left),y:touchHitGroup.y-wy(touchStartY-rc.top)};}
     }
-  } else if(e.touches.length===2&&lastTouches.length===2){
+    if(touchMoved){
+      if(dragging){dragging.x=wx(t.clientX-rc.left)+dragOff.x;dragging.y=wy(t.clientY-rc.top)+dragOff.y;}
+      else if(draggingGroup){draggingGroup.x=wx(t.clientX-rc.left)+dragGroupOff.x;draggingGroup.y=wy(t.clientY-rc.top)+dragGroupOff.y;}
+      else if(mode==='group'&&groupDrawStart){groupDrawCurrent={x:wx(t.clientX-rc.left),y:wy(t.clientY-rc.top)};}
+      else{pan.x+=t.clientX-lastTouches[0].clientX;pan.y+=t.clientY-lastTouches[0].clientY;}
+    }
+  }
+  if(e.touches.length===2&&lastTouches.length===2){
     const d1=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
     const d2=Math.hypot(lastTouches[0].clientX-lastTouches[1].clientX,lastTouches[0].clientY-lastTouches[1].clientY);
     const cx=(e.touches[0].clientX+e.touches[1].clientX)/2,cy=(e.touches[0].clientY+e.touches[1].clientY)/2;
     const rc=canvas.getBoundingClientRect(),px=cx-rc.left,py=cy-rc.top;
     const nz=Math.max(0.15,Math.min(4,zoom*(d1/d2||1)));
     pan.x=px-(px-pan.x)*(nz/zoom);pan.y=py-(py-pan.y)*(nz/zoom);zoom=nz;
+    pan.x+=cx-(lastTouches[0].clientX+lastTouches[1].clientX)/2;
+    pan.y+=cy-(lastTouches[0].clientY+lastTouches[1].clientY)/2;
   }
   lastTouches=e.touches;draw();
 },{passive:false});
 canvas.addEventListener('touchend',e=>{
-  if(mode==='add'&&e.changedTouches.length===1&&lastTouches&&lastTouches.length===1){
-    const rc=canvas.getBoundingClientRect(),t=e.changedTouches[0];
-    const px=t.clientX-rc.left,py=t.clientY-rc.top;
-    if(!getNodeAt(px,py)){
-      nodes.push({id:++idSeq,name:'New Technique',cat:'Position',notes:'',x:wx(px),y:wy(py),w:150,h:64,customColor:null});
-      selectThing({type:'node',id:nodes[nodes.length-1].id});draw();
-    }
-  }
-  if(mode==='connect'&&e.changedTouches.length===1&&lastTouches&&lastTouches.length===1){
-    const rc=canvas.getBoundingClientRect(),t=e.changedTouches[0];
-    const px=t.clientX-rc.left,py=t.clientY-rc.top,n=getNodeAt(px,py);
-    if(n){
-      if(!connectSrc){connectSrc=n;updateHint();draw();}
-      else if(connectSrc.id!==n.id){
-        if(!edges.find(ed=>ed.src===connectSrc.id&&ed.dst===n.id)){edges.push({id:++idSeq,src:connectSrc.id,dst:n.id,note:'',style:'solid'});selectThing({type:'edge',id:edges[edges.length-1].id});}
-        connectSrc=null;updateHint();draw();
-      }
-    }
-  }
-  if(mode==='select'&&e.changedTouches.length===1&&lastTouches&&lastTouches.length===1){
-    const rc=canvas.getBoundingClientRect(),t=e.changedTouches[0];
-    const startT=lastTouches[0];
-    const dx=t.clientX-startT.clientX,dy=t.clientY-startT.clientY;
-    if(Math.hypot(dx,dy)<8){
-      const px=t.clientX-rc.left,py=t.clientY-rc.top;
-      const n=getNodeAt(px,py);
-      if(n){selectThing({type:'node',id:n.id});draw();return;}
-      const edge=getEdgeAt(px,py);if(edge){selectThing({type:'edge',id:edge.id});draw();return;}
-      const g=getGroupAt(px,py);if(g){selectThing({type:'group',id:g.id});draw();return;}
-      selectThing(null);draw();
-    }
+  const rc=canvas.getBoundingClientRect();
+  if(mode==='group'&&groupDrawStart&&groupDrawCurrent&&touchMoved){
+    const gx=Math.min(groupDrawStart.x,groupDrawCurrent.x),gy=Math.min(groupDrawStart.y,groupDrawCurrent.y);
+    const gw=Math.abs(groupDrawCurrent.x-groupDrawStart.x),gh=Math.abs(groupDrawCurrent.y-groupDrawStart.y);
+    if(gw>30&&gh>20){groups.push({id:++idSeq,label:'New Group',x:gx,y:gy,w:gw,h:gh,color:'#3b8bd4',notes:''});selectThing({type:'group',id:groups[groups.length-1].id});}
+    groupDrawStart=null;groupDrawCurrent=null;draw();
+  } else if(!touchMoved&&!hadMultiTouch&&e.changedTouches.length===1){
+    const t=e.changedTouches[0],px=t.clientX-rc.left,py=t.clientY-rc.top;
+    if(mode==='add'&&!getNodeAt(px,py)){nodes.push({id:++idSeq,name:'New Technique',cat:'Position',notes:'',x:wx(px),y:wy(py),w:150,h:64,customColor:null});selectThing({type:'node',id:nodes[nodes.length-1].id});}
+    else if(mode==='connect'){const n=getNodeAt(px,py);if(n){if(!connectSrc){connectSrc=n;updateHint();}else if(connectSrc.id!==n.id){if(!edges.find(ed=>ed.src===connectSrc.id&&ed.dst===n.id)){edges.push({id:++idSeq,src:connectSrc.id,dst:n.id,note:'',style:'solid'});selectThing({type:'edge',id:edges[edges.length-1].id});}connectSrc=null;updateHint();}}}
+    else if(mode==='select'){const n=getNodeAt(px,py);if(n)selectThing({type:'node',id:n.id});else{const edge=getEdgeAt(px,py);if(edge)selectThing({type:'edge',id:edge.id});else{const g=getGroupAt(px,py);if(g)selectThing({type:'group',id:g.id});else selectThing(null);}}}
+    draw();
   }
   dragging=null;draggingGroup=null;panning=false;
+  if(e.touches.length===0){hadMultiTouch=false;touchHitNode=null;touchHitGroup=null;}
 },{passive:false});
 document.addEventListener('keydown',e=>{
   const inInput=['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName);
@@ -961,8 +971,12 @@ function drawGraph(){
   const gc=document.getElementById('graph-canvas');
   const gw=gc.parentElement.clientWidth,gh=gc.parentElement.clientHeight;
   if(!gw||!gh)return;
-  gc.width=gw;gc.height=gh;
-  const gctx=gc.getContext('2d');gctx.clearRect(0,0,gw,gh);
+  const dpr=window.devicePixelRatio||1;
+  gc.width=Math.round(gw*dpr);gc.height=Math.round(gh*dpr);
+  gc.style.width=gw+'px';gc.style.height=gh+'px';
+  const gctx=gc.getContext('2d');
+  gctx.setTransform(dpr,0,0,dpr,0,0);
+  gctx.clearRect(0,0,gw,gh);
   const now=new Date();
   let startDate;
   if(graphRangeMonths===0){
