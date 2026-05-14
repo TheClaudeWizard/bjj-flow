@@ -101,22 +101,21 @@ body{font-family:'Segoe UI',sans-serif;background:#0f1117;color:#e8e6df;height:1
 .ab-danger{color:#e24b4a55;border-color:#3a3d4e;}
 .ab-danger:active{background:#e24b4a22;color:#e24b4a;border-color:#e24b4a55;}
 
-/* ── Panel (bottom sheet) ── */
+/* ── Panel (left drawer) ── */
 #panel{
-  position:absolute;left:0;right:0;bottom:0;
-  max-height:74%;
+  position:absolute;left:0;top:0;bottom:0;
+  width:25%;
   background:#1a1d26;
-  border-radius:18px 18px 0 0;
-  border-top:1px solid #2a2d3a;
+  border-right:1px solid #2a2d3a;
   overflow-y:auto;
-  transform:translateY(100%);
+  transform:translateX(-100%);
   transition:transform .28s cubic-bezier(.4,0,.2,1);
   z-index:20;
   -webkit-overflow-scrolling:touch;
 }
-#panel.open{transform:translateY(0);}
-#panel-knob-row{text-align:center;padding:10px 0 2px;flex-shrink:0;}
-#panel-knob{display:inline-block;width:40px;height:4px;background:#3a3d4e;border-radius:2px;}
+#panel.open{transform:translateX(0);}
+#panel-knob-row{display:none;}
+#panel-knob{display:none;}
 #panel-titlebar{
   display:flex;align-items:center;justify-content:space-between;
   padding:6px 18px 12px;border-bottom:1px solid #2a2d3a;
@@ -364,6 +363,7 @@ body{font-family:'Segoe UI',sans-serif;background:#0f1117;color:#e8e6df;height:1
       <button class="mb-btn"        id="mb-add"     onclick="setMode('add')"><span class="mb-icon">＋</span><span class="mb-label">Add</span></button>
       <button class="mb-btn"        id="mb-connect" onclick="setMode('connect')"><span class="mb-icon">→</span><span class="mb-label">Link</span></button>
       <button class="mb-btn"        id="mb-group"   onclick="setMode('group')"><span class="mb-icon">▣</span><span class="mb-label">Group</span></button>
+      <button class="mb-btn"        id="mb-modify"  onclick="setMode('modify')"><span class="mb-icon">⚙</span><span class="mb-label">Modify</span></button>
     </div>
     <div id="action-btns">
       <button class="ab-btn" onclick="resetView()" title="Fit View">⊙</button>
@@ -569,12 +569,13 @@ function switchTab(t){
 // ═══════════════════════════════════════════
 function setMode(m){
   mode=m;connectSrc=null;groupDrawStart=null;groupDrawCurrent=null;
-  ['select','add','connect','group'].forEach(k=>{const b=document.getElementById('mb-'+k);if(b)b.classList.toggle('active',k===m);});
+  ['select','add','connect','group','modify'].forEach(k=>{const b=document.getElementById('mb-'+k);if(b)b.classList.toggle('active',k===m);});
+  if(m!=='modify')panel.classList.remove('open');
   canvas.style.cursor=(m==='add'||m==='group')?'crosshair':'default';
   updateHint();draw();
 }
 function updateHint(){
-  const H2={select:'Tap to select · Drag to move · Pinch to zoom',add:'Tap anywhere to place a technique',connect:connectSrc?'Tap target node — ESC to cancel':'Tap source node to start a connection',group:'Drag to draw a group border'};
+  const H2={select:'Tap to select · Drag to move · Pinch to zoom',add:'Tap anywhere to place a technique',connect:connectSrc?'Tap target node — ESC to cancel':'Tap source node to start a connection',group:'Drag to draw a group border',modify:'Tap a node, connection, or group to edit it'};
   document.getElementById('hint').textContent=H2[mode]||'';
 }
 
@@ -710,7 +711,7 @@ canvas.addEventListener('mousemove',e=>{
   const hn=n?n.id:null,he=ne?ne.id:null,hg=ng?ng.id:null;
   if(hn!==hoverNode||he!==hoverEdge||hg!==hoverGroup){hoverNode=hn;hoverEdge=he;hoverGroup=hg;draw();}
   if(mode==='connect')draw();
-  if(n)canvas.style.cursor=mode==='select'?'grab':'pointer';
+  if(n)canvas.style.cursor=(mode==='select')?'grab':(mode==='modify')?'pointer':'pointer';
   else if(ne)canvas.style.cursor='pointer';
   else if(ng){const sg=selected&&selected.type==='group'?groups.find(x=>x.id===selected.id):null;if(sg){const rh=getResizeHandle(sg,px,py);if(rh){canvas.style.cursor=rh==='se'||rh==='nw'?'nwse-resize':rh==='sw'||rh==='ne'?'nesw-resize':rh==='n'||rh==='s'?'ns-resize':'ew-resize';return;}}canvas.style.cursor='move';}
   else canvas.style.cursor=(mode==='add'||mode==='group')?'crosshair':'default';
@@ -722,6 +723,12 @@ canvas.addEventListener('mousedown',e=>{
   if(mode==='add'&&!n){nodes.push({id:++idSeq,name:'New Technique',cat:'Position',notes:'',x:wx(px),y:wy(py),w:150,h:64,customColor:null});selectThing({type:'node',id:nodes[nodes.length-1].id});draw();return;}
   if(mode==='connect'){if(n){if(!connectSrc){connectSrc=n;updateHint();draw();}else if(connectSrc.id!==n.id){if(!edges.find(ed=>ed.src===connectSrc.id&&ed.dst===n.id)){edges.push({id:++idSeq,src:connectSrc.id,dst:n.id,note:'',style:'solid'});selectThing({type:'edge',id:edges[edges.length-1].id});}connectSrc=null;updateHint();draw();}}return;}
   if(mode==='group'){groupDrawStart={x:wx(px),y:wy(py)};groupDrawCurrent={x:wx(px),y:wy(py)};return;}
+  if(mode==='modify'){
+    if(n){selectThing({type:'node',id:n.id});draw();return;}
+    const edge=getEdgeAt(px,py);if(edge){selectThing({type:'edge',id:edge.id});draw();return;}
+    const g=getGroupAt(px,py);if(g){selectThing({type:'group',id:g.id});draw();return;}
+    selectThing(null);draw();return;
+  }
   if(selected&&selected.type==='group'){const sg=groups.find(x=>x.id===selected.id);if(sg){const rh=getResizeHandle(sg,px,py);if(rh){resizingGroup=sg;resizeHandle=rh;resizeStart={ox:sg.x,oy:sg.y,ow:sg.w,oh:sg.h,mx:wx(px),my:wy(py)};return;}}}
   if(n){selectThing({type:'node',id:n.id});dragging=n;dragOff={x:n.x-wx(px),y:n.y-wy(py)};canvas.style.cursor='grabbing';draw();return;}
   const edge=getEdgeAt(px,py);if(edge){selectThing({type:'edge',id:edge.id});draw();return;}
@@ -753,8 +760,8 @@ canvas.addEventListener('touchstart',e=>{
     const t=e.touches[0],rc=canvas.getBoundingClientRect();
     const px=t.clientX-rc.left,py=t.clientY-rc.top;
     touchStartX=t.clientX;touchStartY=t.clientY;touchMoved=false;
-    touchHitNode=mode==='select'?getNodeAt(px,py):null;
-    touchHitGroup=(mode==='select'&&!touchHitNode)?getGroupAt(px,py):null;
+    touchHitNode=(mode==='select'||mode==='modify')?getNodeAt(px,py):null;
+    touchHitGroup=((mode==='select'||mode==='modify')&&!touchHitNode)?getGroupAt(px,py):null;
     if(mode==='group'){groupDrawStart={x:wx(px),y:wy(py)};groupDrawCurrent={x:wx(px),y:wy(py)};}
   } else {
     dragging=null;draggingGroup=null;
@@ -801,6 +808,7 @@ canvas.addEventListener('touchend',e=>{
     if(mode==='add'&&!getNodeAt(px,py)){nodes.push({id:++idSeq,name:'New Technique',cat:'Position',notes:'',x:wx(px),y:wy(py),w:150,h:64,customColor:null});selectThing({type:'node',id:nodes[nodes.length-1].id});}
     else if(mode==='connect'){const n=getNodeAt(px,py);if(n){if(!connectSrc){connectSrc=n;updateHint();}else if(connectSrc.id!==n.id){if(!edges.find(ed=>ed.src===connectSrc.id&&ed.dst===n.id)){edges.push({id:++idSeq,src:connectSrc.id,dst:n.id,note:'',style:'solid'});selectThing({type:'edge',id:edges[edges.length-1].id});}connectSrc=null;updateHint();}}}
     else if(mode==='select'){const n=getNodeAt(px,py);if(n)selectThing({type:'node',id:n.id});else{const edge=getEdgeAt(px,py);if(edge)selectThing({type:'edge',id:edge.id});else{const g=getGroupAt(px,py);if(g)selectThing({type:'group',id:g.id});else selectThing(null);}}}
+    else if(mode==='modify'){const n=getNodeAt(px,py);if(n)selectThing({type:'node',id:n.id});else{const edge=getEdgeAt(px,py);if(edge)selectThing({type:'edge',id:edge.id});else{const g=getGroupAt(px,py);if(g)selectThing({type:'group',id:g.id});else selectThing(null);}}}
     draw();
   }
   dragging=null;draggingGroup=null;panning=false;
@@ -818,24 +826,26 @@ document.addEventListener('keydown',e=>{
 // ═══════════════════════════════════════════
 function selectThing(sel){
   selected=sel;if(!sel){panel.classList.remove('open');draw();return;}
-  panel.classList.add('open');
-  ['pf-node','pf-edge','pf-group'].forEach(id=>document.getElementById(id).style.display='none');
-  if(sel.type==='node'){
-    const n=nodes.find(x=>x.id===sel.id);if(!n)return;
-    document.getElementById('panel-title').textContent='✦ Technique';document.getElementById('pf-node').style.display='';
-    document.getElementById('pn-name').value=n.name||'';document.getElementById('pn-cat').value=n.cat||'Position';document.getElementById('pn-notes').value=n.notes||'';
-    document.getElementById('pn-w').value=n.w;document.getElementById('pn-wv').textContent=Math.round(n.w);
-    document.getElementById('pn-h').value=n.h;document.getElementById('pn-hv').textContent=Math.round(n.h);
-    document.querySelectorAll('#node-cr .color-swatch').forEach(s=>s.classList.toggle('sel',s.dataset.color===n.customColor));
-  }else if(sel.type==='edge'){
-    const ed=edges.find(x=>x.id===sel.id);if(!ed)return;
-    document.getElementById('panel-title').textContent='⟶ Connection';document.getElementById('pf-edge').style.display='';
-    document.getElementById('pe-note').value=ed.note||'';document.getElementById('pe-style').value=ed.style||'solid';
-  }else if(sel.type==='group'){
-    const g=groups.find(x=>x.id===sel.id);if(!g)return;
-    document.getElementById('panel-title').textContent='▣ Group';document.getElementById('pf-group').style.display='';
-    document.getElementById('pg-label').value=g.label||'';document.getElementById('pg-notes').value=g.notes||'';
-    document.querySelectorAll('#group-cr .color-swatch').forEach(s=>s.classList.toggle('sel',s.dataset.color===g.color));
+  if(mode==='modify'){
+    panel.classList.add('open');
+    ['pf-node','pf-edge','pf-group'].forEach(id=>document.getElementById(id).style.display='none');
+    if(sel.type==='node'){
+      const n=nodes.find(x=>x.id===sel.id);if(!n)return;
+      document.getElementById('panel-title').textContent='✦ Technique';document.getElementById('pf-node').style.display='';
+      document.getElementById('pn-name').value=n.name||'';document.getElementById('pn-cat').value=n.cat||'Position';document.getElementById('pn-notes').value=n.notes||'';
+      document.getElementById('pn-w').value=n.w;document.getElementById('pn-wv').textContent=Math.round(n.w);
+      document.getElementById('pn-h').value=n.h;document.getElementById('pn-hv').textContent=Math.round(n.h);
+      document.querySelectorAll('#node-cr .color-swatch').forEach(s=>s.classList.toggle('sel',s.dataset.color===n.customColor));
+    }else if(sel.type==='edge'){
+      const ed=edges.find(x=>x.id===sel.id);if(!ed)return;
+      document.getElementById('panel-title').textContent='⟶ Connection';document.getElementById('pf-edge').style.display='';
+      document.getElementById('pe-note').value=ed.note||'';document.getElementById('pe-style').value=ed.style||'solid';
+    }else if(sel.type==='group'){
+      const g=groups.find(x=>x.id===sel.id);if(!g)return;
+      document.getElementById('panel-title').textContent='▣ Group';document.getElementById('pf-group').style.display='';
+      document.getElementById('pg-label').value=g.label||'';document.getElementById('pg-notes').value=g.notes||'';
+      document.querySelectorAll('#group-cr .color-swatch').forEach(s=>s.classList.toggle('sel',s.dataset.color===g.color));
+    }
   }
   draw();
 }
